@@ -77,13 +77,10 @@ interface ICrystalCoin {
      */
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
-    // 注册可以提款的合约地址
     function registerContractAddress(address contractAddress) external;
 
-    // 提款
     function transferCrystalCoin(address to, uint256 amount) external returns (bool);
 
-    // 赎回
     function regainCrystalCoin(address from, uint256 amount) external returns (bool);
 
     struct lendData {
@@ -92,7 +89,6 @@ interface ICrystalCoin {
         bool isValue;
     }
 
-    // 获取所有账户提款总额
     function getLendData() external view returns (lendData[] memory lends);
 }
 
@@ -108,10 +104,7 @@ contract CoinTransfer is Ownable {
 
     mapping(address => uint) _testCoin;
 
-    /*
-    * 这里的汇率是一个测试货币转换为10^(-18)个水晶币的数值
-    * 汇率可以设置成一个自动调整的函数
-    */
+
     function setExchangeRate(uint rate) public {
         _rate = rate;
     }
@@ -129,19 +122,12 @@ contract CoinTransfer is Ownable {
         return _testCoin[to];
     }
 
-    /*
-    * 用户使用测试货币兑换水晶币
-    * 对于每个地址有一个兑换间隔
-    */
     function exchangeCrystalCoin(address to, uint amount) public {
         require (_testCoin[to] >= amount, "money not enought" );
         _crystalCoin.transferCrystalCoin(to, amount * _rate);
         _testCoin[to] -= amount;
     }
 
-    /*
-    * 用户使用水晶币购买测试代币，crystalCoin单位为10^(-18)水晶币
-    */
     function exchangeTestCoin(address to, uint crystalCoin) public {
         uint userCrystalCoinCount = _crystalCoin.balanceOf(to);
         require (userCrystalCoinCount >= crystalCoin, "money not enought");
