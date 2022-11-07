@@ -1490,33 +1490,33 @@ contract CrystalCoin is ERC20(), Ownable {
     }
 
     struct stakeData {
-        uint id;            // 质押id
-        address add;        // 质押用户地址
-        uint amount;        // 质押数量（本金）
-        uint starttime;     // 开始时间
-        uint endtime;       // 结束时间，质押以后，必须等待时间超过endtime才可以取出本金
-        uint rate;          // 利息比例，单位为10^9，比如这个值为1的话，那么一个水晶币质押一天的利息是10^9 GWei
-        bool isValue;       // 是否有效
-        uint useinterest;   // 取出的利息
+        uint id;            
+        address add;      
+        uint amount;        
+        uint starttime; 
+        uint endtime;    
+        uint rate;      
+        bool isValue;    
+        uint useinterest;  
     }
 
     struct stakeRate {
         uint id;
-        uint stakeTime;     // 质押时间
-        uint rate;          // 利息
-        bool isValue;       // 是否有效
+        uint stakeTime;   
+        uint rate;         
+        bool isValue;      
     }
 
     address managerLeadAddress;
 
-    // 借出水晶币的账户，key为账户地址，value为借出总额
+
     mapping(address => lendData) lendAddress;
     mapping(uint => address) lendAddressIndex;
     uint currentLendAddressIndex;
 
-    // 质押
+
     mapping(uint => stakeData) private stakeMap;
-    // 用户质押列表，key为地址，value为质押编号
+
     mapping(address => uint[]) private userStakeMap;
 
     using Counters for Counters.Counter;
@@ -1528,8 +1528,8 @@ contract CrystalCoin is ERC20(), Ownable {
     event stakeCrystal(address sender, uint time, uint money);
 
     constructor () {
-        _name = '\u6c34\u6676\u5e01';
-        _symbol = 'CSY';
+        _name = 'Aida LEQ';
+        _symbol = 'LEQ';
         managerLeadAddress = msg.sender;
 
         _mint(address(this), 100000000 * 1000000000000000000);
@@ -1544,9 +1544,6 @@ contract CrystalCoin is ERC20(), Ownable {
         _mint(_to, _amount);
     }
     
-    /*
-    * 注册可以直接调用转账的智能合约地址
-    */
     function registerContractAddress(address contractAddress) public {
         require(msg.sender == managerLeadAddress, 'privage reject');
         lendData memory lend = lendAddress[contractAddress];
@@ -1561,9 +1558,6 @@ contract CrystalCoin is ERC20(), Ownable {
         }
     }
 
-    /*
-     * 给某个账户发送水晶币
-    */
     function transferCrystalCoin(address to, uint256 amount) public returns (bool) {
         lendData memory lend = lendAddress[msg.sender];
         if (lend.isValue) {
@@ -1572,14 +1566,10 @@ contract CrystalCoin is ERC20(), Ownable {
             return true;
         } 
         else {
-            // 没有提款权限
             return false;
         }
     }
 
-    /*
-     * 用户归还水晶币
-    */
     function regainCrystalCoin(address from, uint256 amount) public returns (bool) {
         lendData memory lend = lendAddress[msg.sender];
         if (lend.isValue) {
@@ -1589,7 +1579,6 @@ contract CrystalCoin is ERC20(), Ownable {
             return true;
         } 
         else {
-            // 没有提款权限
             return false;
         }
     }
@@ -1691,9 +1680,6 @@ contract CrystalCoin is ERC20(), Ownable {
         return rate;
     }
 
-    /*
-     * 用户质押水晶币
-    */
     function stakeCrystalCoin(address from, uint time, uint256 amount) public {
         uint256 userBalance = balanceOf(from);
         require(userBalance >= amount, "money not enought");
@@ -1704,7 +1690,6 @@ contract CrystalCoin is ERC20(), Ownable {
         idList = pushArrayValue(idList, id);
         userStakeMap[from] = idList;
         uint rate = getStakeRate(time);
-        // 生成质押数据
         stakeData memory userStakeData = stakeData({
             id: id,
             add: from,
@@ -1717,15 +1702,11 @@ contract CrystalCoin is ERC20(), Ownable {
         });
         stakeMap[id] = userStakeData;
 
-        // 将用户的水晶币转移到智能合约账户
         _transfer(from, address(this), amount);
 
         emit stakeCrystal(from, time, amount);
     }
 
-    /*
-    * 取得某个用户的质押水晶币
-    */
     function getUserStake(address from) public view returns (stakeData[] memory) {
         uint[] memory idList = userStakeMap[from];
         if (idList.length >= 1) {
@@ -1740,31 +1721,22 @@ contract CrystalCoin is ERC20(), Ownable {
         }
     }
 
-    /*
-     * 用户取消质押水晶币，如果时间到达质押结束日期，那么返还所有本金和利息
-     * 否则返还扣除取出利息后的一部分代币
-    */
     function cancelStakeCrystalCoin(address from, uint id) public {
         stakeData memory userStakeData = stakeMap[id];
         uint nowTime = block.timestamp;
         require(userStakeData.isValue && userStakeData.add == from, "invalid stake data");
         if (nowTime < userStakeData.endtime) {
-            // 未到质押结束时间，返还本金
-
             _transfer(address(this), from, userStakeData.amount);
         }
         else {
-            // 到达质押结束时间，返还本金加利息
             uint interest = userStakeData.amount * userStakeData.rate * (userStakeData.endtime - userStakeData.starttime) / 86400 / 1000000000;
             _transfer(address(this), from, userStakeData.amount + interest);
         }
 
-        // 从用户质押列表中删除id
         uint[] memory idList = userStakeMap[from];
         idList = removeArrayValue(idList, id);
         userStakeMap[from] = idList;
 
-        // 设置用户质押数据无效
         userStakeData.isValue = false;
         stakeMap[id] = userStakeData;
     }
